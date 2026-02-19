@@ -3,6 +3,23 @@ const storageKeys = {
   currentUser: "inkwell_current_user",
 };
 
+const memoryStore = new Map();
+
+function getSafeStorage() {
+  try {
+    const testKey = "__inkwell_test__";
+    window.localStorage.setItem(testKey, "1");
+    window.localStorage.removeItem(testKey);
+    return window.localStorage;
+  } catch {
+    return {
+      getItem: (key) => (memoryStore.has(key) ? memoryStore.get(key) : null),
+      setItem: (key, value) => memoryStore.set(key, String(value)),
+      removeItem: (key) => memoryStore.delete(key),
+    };
+  }
+}
+
 function initInkWell() {
   const authView = document.getElementById("auth-view");
   const editorView = document.getElementById("editor-view");
@@ -10,16 +27,15 @@ function initInkWell() {
   const statusLine = document.getElementById("status-line");
   const welcomeTitle = document.getElementById("welcome-title");
   const editor = document.getElementById("note-editor");
+  const storage = getSafeStorage();
 
-  if (!authView || !editorView || !authMessage || !statusLine || !welcomeTitle || !editor) {
-    return;
-  }
+  if (!authView || !editorView || !authMessage || !statusLine || !welcomeTitle || !editor) return;
 
-  const getUsers = () => JSON.parse(localStorage.getItem(storageKeys.users) || "[]");
-  const setUsers = (users) => localStorage.setItem(storageKeys.users, JSON.stringify(users));
-  const getCurrentUser = () => JSON.parse(localStorage.getItem(storageKeys.currentUser) || "null");
-  const setCurrentUser = (user) => localStorage.setItem(storageKeys.currentUser, JSON.stringify(user));
-  const noteKey = (email) => `inkwell_note_${email.toLowerCase()}`;
+  const getUsers = () => JSON.parse(storage.getItem(storageKeys.users) || "[]");
+  const setUsers = (users) => storage.setItem(storageKeys.users, JSON.stringify(users));
+  const getCurrentUser = () => JSON.parse(storage.getItem(storageKeys.currentUser) || "null");
+  const setCurrentUser = (user) => storage.setItem(storageKeys.currentUser, JSON.stringify(user));
+  const noteKey = (email) => `inkwell_note_${String(email || "").toLowerCase()}`;
 
   const showAuthMessage = (text, isError = false) => {
     authMessage.textContent = text;
@@ -36,16 +52,20 @@ function initInkWell() {
   };
 
   const loadUserNote = (user) => {
-    const saved = localStorage.getItem(noteKey(user.email)) || "";
+    if (!user?.email) {
+      showView(false);
+      return;
+    }
+    const saved = storage.getItem(noteKey(user.email)) || "";
     editor.value = saved;
-    welcomeTitle.textContent = `${user.name}'s notes`;
-    setEditorStatus(saved ? "Draft restored from local storage." : "Start writing your note…");
+    welcomeTitle.textContent = `${user.name || "Your"}'s notes`;
+    setEditorStatus(saved ? "Draft restored from storage." : "Start writing your note…");
   };
 
   const saveUserNote = () => {
     const user = getCurrentUser();
-    if (!user) return;
-    localStorage.setItem(noteKey(user.email), editor.value);
+    if (!user?.email) return;
+    storage.setItem(noteKey(user.email), editor.value);
     setEditorStatus(`Saved at ${new Date().toLocaleTimeString()}`);
   };
 
@@ -60,10 +80,7 @@ function initInkWell() {
     const before = text.slice(0, blockStart);
     const selectedBlock = text.slice(blockStart, blockEnd);
     const after = text.slice(blockEnd);
-    const updatedBlock = selectedBlock
-      .split("\n")
-      .map((line) => transform(line))
-      .join("\n");
+    const updatedBlock = selectedBlock.split("\n").map((line) => transform(line)).join("\n");
 
     editor.value = `${before}${updatedBlock}${after}`;
     editor.selectionStart = blockStart;
@@ -118,6 +135,11 @@ function initInkWell() {
     const email = document.getElementById("signup-email")?.value.trim().toLowerCase() || "";
     const password = document.getElementById("signup-password")?.value || "";
 
+    if (!name || !email || !password) {
+      showAuthMessage("Please fill all sign up fields.", true);
+      return;
+    }
+
     const users = getUsers();
     if (users.some((user) => user.email === email)) {
       showAuthMessage("Email already exists. Please login.", true);
@@ -148,7 +170,7 @@ function initInkWell() {
   });
 
   document.getElementById("logout-btn")?.addEventListener("click", () => {
-    localStorage.removeItem(storageKeys.currentUser);
+    storage.removeItem(storageKeys.currentUser);
     showView(false);
     showAuthMessage("Logged out successfully.");
   });
@@ -180,7 +202,7 @@ function initInkWell() {
   });
 
   const existingUser = getCurrentUser();
-  if (existingUser) {
+  if (existingUser?.email) {
     showView(true);
     loadUserNote(existingUser);
   } else {
@@ -188,4 +210,14 @@ function initInkWell() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", initInkWell);
+document.addEventListener("DOMContentLoaded", () => {
+  try {
+    initInkWell();
+  } catch (error) {
+    const fallback = document.createElement("p");
+    fallback.textContent = "InkWell failed to initialize. Please refresh or clear site data.";
+    fallback.style.cssText = "margin:2rem auto;max-width:640px;padding:1rem;border:1px solid #fda29b;background:#fef3f2;border-radius:12px;color:#b42318;font-family:system-ui";
+    document.body.prepend(fallback);
+    console.error(error);
+  }
+});
