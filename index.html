@@ -1,1 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>InkWell Notes</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="auth-view" class="card auth-card">
+        <h1>InkWell</h1>
+        <p class="subtitle">A clean notepad with docs-style writing tools.</p>
+
+        <div class="tabs">
+          <button class="tab active" data-target="login-form">Login</button>
+          <button class="tab" data-target="signup-form">Sign Up</button>
+        </div>
+
+        <form id="login-form" class="auth-form">
+          <label>Email</label>
+          <input type="email" id="login-email" required placeholder="you@example.com" />
+          <label>Password</label>
+          <input type="password" id="login-password" required minlength="6" />
+          <button type="submit">Login</button>
+        </form>
+
+        <form id="signup-form" class="auth-form hidden">
+          <label>Name</label>
+          <input type="text" id="signup-name" required placeholder="Alex" />
+          <label>Email</label>
+          <input type="email" id="signup-email" required placeholder="you@example.com" />
+          <label>Password</label>
+          <input type="password" id="signup-password" required minlength="6" />
+          <button type="submit">Create Account</button>
+        </form>
+
+        <p id="auth-message" class="message"></p>
+      </section>
+
+      <section id="editor-view" class="hidden">
+        <header class="topbar card">
+          <div>
+            <h2 id="welcome-title">Welcome</h2>
+            <p id="status-line" class="subtitle">Start writing your note…</p>
+          </div>
+          <button id="logout-btn" class="ghost">Logout</button>
+        </header>
+
+        <section class="toolbar card">
+          <button id="save-btn">Save</button>
+          <button id="download-btn">Download .txt</button>
+          <button id="indent-btn">Indent</button>
+          <button id="outdent-btn">Outdent</button>
+          <button id="punctuation-btn">Fix punctuation</button>
+        </section>
+
+        <section class="editor-wrapper card">
+          <textarea id="note-editor" spellcheck="true" placeholder="Type your ideas here..."></textarea>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
 
